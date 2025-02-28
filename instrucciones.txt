@@ -1,0 +1,277 @@
+1. Instrucciones generales
+BD de una biblioteca.
+
+----------------------------------------------------------------------------------------------
+2. Tablas
+01 - "obra"
+La tabla obra contiene la información de las obras literarias.
+CREATE TABLE obra (
+    id CHAR (5),
+    titulo VARCHAR(100),
+    anyo INTEGER,
+    CONSTRAINT PK_obra PRIMARY KEY (id),
+    CONSTRAINT NN_titulo CHECK (titulo IS NOT NULL)
+);
+
+02 - "autor"
+La tabla autor contiene la información de los autores de las obras.
+CREATE TABLE autor (
+    id CHAR(4),
+    nombre VARCHAR(30),
+    apellidos VARCHAR(60),
+    nacimiento DATE,
+    CONSTRAINT PK_autor PRIMARY KEY (id),
+    CONSTRAINT NN_nombre CHECK (nombre IS NOT NULL),
+    CONSTRAINT NN_apellidos CHECK (apellidos IS NOT NULL)
+);
+
+03 - "autor_obra"
+La tabla autor_obra contiene la relación de autores y obras.
+CREATE TABLE autor_obra (
+    id_autor CHAR(4),
+    id_obra CHAR(5),
+    CONSTRAINT PK_autor_obra PRIMARY KEY (id_autor, id_obra),
+    CONSTRAINT FK_autor_obra_id_autor FOREIGN KEY (id_autor) REFERENCES autor (id),
+    CONSTRAINT FK_autor_obra_id_obra FOREIGN KEY (id_obra) REFERENCES obra(id)
+);
+
+04 - "edicion"
+La tabla edicion contiene la información de las ediciones publicadas de las obras.
+CREATE TABLE edicion (
+    id CHAR(6),
+    id_obra CHAR(5),
+    isbn VARCHAR(20),
+    anyo INTEGER,
+    CONSTRAINT PK_edicion PRIMARY KEY (id),
+    CONSTRAINT NN_id_obra CHECK (id_obra IS NOT NULL),
+    CONSTRAINT NN_isbn CHECK (isbn IS NOT NULL),
+    CONSTRAINT FK_edicion FOREIGN KEY (id_obra) REFERENCES obra (id)
+);
+
+05 - "ejemplar"
+La tabla ejemplar contiene la información de los ejemplares adquiridos por la biblioteca.
+CREATE TABLE ejemplar (
+    id_edicion CHAR(6),
+    numero INTEGER,
+    alta DATE,
+    baja DATE,
+    CONSTRAINT PK_ejemplar PRIMARY KEY (id_edicion, numero),
+    CONSTRAINT FK_ejemplar FOREIGN KEY (id_edicion) REFERENCES edicion(id),
+    CONSTRAINT NN_alta CHECK (alta IS NOT NULL)
+);
+
+06. Los identificadores serán alfanuméricos y generados de forma aleatoria. Por supuesto 
+habrá que tener en cuenta antes de realizar la inserción que la PK no esté duplicada, caso
+de estarlo terminaremos de forma controlada el intento de inserción monitorizando por 
+pantalla el error.
+DECLARE
+id5 CHAR(5);
+
+BEGIN
+    id5: dbms_random.string('X', 5); -- insertar una obra
+    INSERT INTO obra (id, titulo) VALUES (id5, 'Cinco semanas en globo');
+END;
+
+07. Los ejemplares de cada edicion serán numerados de forma consecutiva.
+SELECT * FROM ejemplar WHERE id_edicion = 'FSDPC7';
+
+----------------------------------------------------------------------------------------------
+3. Operativa requerida
+08. El alta de obras se implementará mediante una función "alta_obra"
+-- efectos: alta de obra con titulo y año
+-- retorno: id asignado, '-1' error
+FUNCTION alta_obra(p_titulo VARCHAR, p_anyo INTEGER DEFAULT NULL)
+
+RETURN VARCHAR IS
+    -- escribir aqui las declaraciones
+BEGIN
+    -- escribir aqui el código
+END;
+
+09. El borrado de obras se implementará mediante una función "borrado_obra"
+-- efectos: borrado de obra por id
+-- retorno: 1 si borrado efectuado, 0 si no existe id, -1 error
+FUNCTION 
+    borrado_obra(p_id
+    VARCHAR) RETURN
+    INTEGER IS
+    -- escribir aqui las declaraciones
+BEGIN
+    -- escribir aqui el código
+END;
+
+09.1. Auditoría del borrado de obras: Cada vez que se ejecute el borrado de una obra y
+para no perder datos, lo que queremos es que la obra borrada y todos los datos asociados
+a ella queden guardados en una/s tabla/s de histórico ocultas al usuario estándar, de modo
+que en cualquier momento se pueda auditar el borrado de obras recuperando todos sus datos
+y la fecha/hora en que fue borrada la hora.
+-- efectos: Auditoría del borrado de obra por id
+-- retorno: No aplicable (TRIGGER)
+TRIGGER auditar_borrado BEFORE/AFTER DELETE ON . . .
+    -- escribir aquí las declaraciones
+BEGIN  
+    -- escribir aquí el código
+END;
+
+10. El alta de autores se implementará mediante una función "alta_autor"
+-- efectos: alta de autor con nombre, apellidos y nacimiento
+-- retorno: id asignado, '-1' error
+FUNCTION alta_autor(p_nombre VARCHAR, p_apellidos VARCHAR, 
+        p_nacimiento DATE DEFAULT NULL)
+    RETURN VARCHAR IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+11. El borrado de autores se implementará mediante una función "borrado_autor"
+-- efectos: borrado de autor por id
+-- retorno: 1 si borrado efectuado, 0 si no existe id, -1 error
+FUNCTION borrado_autor(p_id VARCHAR) RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+12. La vinculación de un autor a una obra se implementará mediante una función "vincular"
+-- efectos: vincula un autor a una obra
+-- retorno: 1 (sin error), -1 error
+FUNCTION vincular(p_id_autor VARCHAR, p_id_obra VARCHAR) RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+13. La desvinculación de un autor de una obra se implementará mediante una función "desvincular"
+-- efectos: desvincula un autor de una obra
+-- retorno: 1 si desvinculación efectuada, 0 si no existe vínculo, -1 error
+FUNCTION desvincular(p_id_autor VARCHAR, p_id_obra VARCHAR)
+RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+14. El alta de ediciones se implementará una función "alta_edición"
+-- efectos: alta de edición con obra, isbn y año
+-- retorno: id asignado, '-1' error
+FUNCTION alta_edicion(p_id_obra VARCHAR, p_isbn VARCHAR, p_año INTEGER DEFAULT NULL)
+    RETURN VARCHAR IS
+        -- escribir aquí las declaraciones
+    BEGIN
+        -- escribir aquí el código
+END;
+
+15. El borrado de ediciones se implementará mediante una función "borrado_edicion"
+-- efectos: borrado de edición id
+-- retorno: 1 si borrado efectuado, 0 si no existe id
+FUNCTION borrado_edicion(p_id VARCHAR)
+RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí la código
+END;
+
+16. El alta de ejemplares se implementará mediante una función "alta_ejemplar"
+-- efectos: alta de ejemplar con id_edicion
+-- retorno: número asignado, -1 si no existe id_edicion
+FUNCTION alta_ejemplar(p_id_edicion VARCHAR) RETURN INTEGER IS 
+    -- escribir aquí las declaraciones
+BEGIN 
+-- escribir aquí el código
+END;
+
+17. La operación de alta de ejemplar no requiere especificar fecha de alta, porque será la 
+fecha del sistema.
+
+18. La operación de alta de ejemplar no requiere especificar el número, porque se calculará 
+según los ejemplares según los ejemplares de la misma edición ya existentes (si hay hay N, pues
+se dará de alta como N+1).
+
+19. Para los ejemplares se distinguirá entre las operaciones de "borrado" y de "baja", ya que tienen 
+diferente significado y aplicación.
+
+20. El borrado de ejemplares significa suprimir la fila correspondiente, y su aplicación habitual
+será revertir un alta errónea.
+
+21. Sólo se podrá borrar un ejemplar si es el último de su serie, no tiene fecha de baja y además
+no han pasado más de 30 días desde la fecha de alta.
+
+22. El borrado de ejemplares se implementará mediante una función "borrado_ejemplar"
+-- efectos: borrado de ejemplar por id_edicion y número
+-- retorno: 1 si borrado efectuado (cumpliendo cláusula 21), 0 borrado no efectuado (no existe el 
+ejemplar indicado) -1 borrado no efectuado (existe pero no cumple la cláusula 21)
+FUNCTION borrado_ejemplar(p_id_edicion VARCHAR, p_numero INTEGER) RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+23. La baja de un ejemplar consistirá en establecer la fecha de baja, y su aplicación será reflejar
+que éste ha sido retirado del sistema por deterioro o extravío.
+
+24. La operación de baja no requiere especificar la fecha, porque se utilizara la del sistema.
+
+25. Sólo se podrá dar de baja un ejemplar si no tiene fecha de baja.
+
+26. La baja de ejemplares se implementará mediante una función "baja_ejemplar"
+-- efectos: baja de ejemplar por id_edicion y número
+-- retorno: 1 si baja efectuada (cumpliendo la cláusula 25) 0 baja no efectuada (no existe el ejemplar
+    indicado) -1 baja no efectuada (existe, pero no cumple la cláusula 25)
+FUNCTION baja_ejemplar(p_id_edicion VARCHAR, p_numero INTEGER) RETURN INTEGER IS
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+----------------------------------------------------------------------------------------------
+4. Operativa opcional
+27. Definir una tabla con la información (nombre y apellidos) de los socios de la biblioteca
+CREATE TABLE socio (
+    -- escribir aquí la definición de la tabla
+);
+
+28. Definir una tabla con la información de los préstamos
+CREATE TABLE prestamo (
+    -- escribir aquí la definición de la tabla
+);
+
+29. Escriba una función llamada "apertura_prestamo" para abrir un préstamo de libro.
+FUNCTION apertura_prestamo ( <parámetros-que-estime-oportunos> )
+RETURN <tipo-de-retorno-que-estime-oportuno> IS
+    -- escribir aquí las declaraciones
+BEGIN   
+    -- escribir aquí el código
+END;
+
+30. Auditar el borrado de cualquier elemento de la BD tal y como realizamos en el punto 9.1 a través de
+TRIGGERS
+
+31. Escriba una función llamada "cierre_préstamo" para cerrar un préstamo de libro.
+FUNCTION cierre_préstamo ( <parámetros-que-estime-oportunos> )
+RETURN <tipo-de-retorno-que-estime-oportuno> IS 
+    -- escribir aquí las declaraciones
+BEGIN
+    -- escribir aquí el código
+END;
+
+----------------------------------------------------------------------------------------------
+5. Formato de entrega
+27. Deberá entregar un fichero ZIP con el formato APELLIDOS_NOMBRE.ZIP, con el código fuente
+PL/SQL que haya desarrollado en dos o tres ficheros de texto que contendrán los procedimientos
+y funciones realizados agrupados en un Package de PLSQL y un tercer fichero que contendrá la parte
+opcional si se ha decidido llevarla a cabo. El cuarto fichero será la batería de pruebas que se ha realizado
+a nuestros procedimientos y/o funciones de los paquetes
+
+28. El primer fichero se llamará BIBLIOTK_PACKAGE.SQL, con el siguiente contenido:
+CREATE OR REPLACE PACKAGE BiblioTK AS
+    ... las funciones tal como deben aparecer en
+CREATE PACKAGE END;
+
+29. El segundo fichero se llamará BIBLIOTK_BODY.SQL, con el siguiente contenido.
+CREATE OR REPLACE PACKAGE BODY BiblioTK AS
+    ... las funciones tal y como deben aparecer en
+CREATE PACKAGE BODY END;
+
+30. El tercer fichero se llamará BIBLIOTK_ESQUEMA_PARTE2.SQL y contendrá la definición CREATE TABLE de 
+las tablas "socio" y "préstamo" de la operativa opcional, si la implementa.
