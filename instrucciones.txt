@@ -64,13 +64,23 @@ CREATE TABLE ejemplar (
 habrá que tener en cuenta antes de realizar la inserción que la PK no esté duplicada, caso
 de estarlo terminaremos de forma controlada el intento de inserción monitorizando por 
 pantalla el error.
-DECLARE
-id5 CHAR(5);
 
-BEGIN
-    id5: dbms_random.string('X', 5); -- insertar una obra
-    INSERT INTO obra (id, titulo) VALUES (id5, 'Cinco semanas en globo');
+
+"Este código es un bloque PL/SQL.
+1. Se declara una variable id5 de tipo CHAR(5). id5 almacenará una cadena de 5 carácteres.
+2. Begin marca la parte ejecutable del código
+3. dbms_random.string('X', 5); genera una cadena aleatoria de 5 carácteres alfabéticos en mayúsculas. 
+el valor generado se asigna a id5.
+4. INSERT INTO... inserta un nuevo registro en la tabla obra, el campo id recibe el valor aleatorio
+el campo titulo recibe el introducido."
+
+DECLARE
+    id5 CHAR(5);
+    BEGIN
+    id5 := dbms_random.string('X', 5);
+    INSERT INTO obra (id, titulo) VALUES (id5, 'El Imperio Final');
 END;
+/
 
 07. Los ejemplares de cada edicion serán numerados de forma consecutiva.
 SELECT * FROM ejemplar WHERE id_edicion = 'FSDPC7';
