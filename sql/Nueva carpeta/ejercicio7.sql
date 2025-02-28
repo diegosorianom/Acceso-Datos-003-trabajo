@@ -1,0 +1,12 @@
+CREATE OR REPLACE FUNCTION
+    TRIENIOS_ENTRE_FECHAS(v_fecha1 IN DATE, v_fecha2 IN DATE)
+RETURN NUMBER
+IS
+    v_trieniosEntreFechas NUMBER(4);
+BEGIN
+    v_trieniosEntreFechas := FLOOR(ANOS_ENTRE_FECHAS(v_fecha1, v_fecha2) / 3);
+    RETURN v_trieniosEntreFechas;
+END;
+/
+
+SELECT TRIENIOS_ENTRE_FECHAS(TO_DATE('2028-10-01', 'YYYY-MM-DD'), TO_DATE('2020-10-01', 'YYYY-MM-DD')) FROM dual;
