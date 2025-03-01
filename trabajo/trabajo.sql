@@ -328,3 +328,255 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('Resultado: ' || v_result);
 END;
 /
+
+
+-- 8
+CREATE OR REPLACE FUNCTION alta_edicion(p_id_obra VARCHAR, p_isbn VARCHAR, p_anyo INTEGER DEFAULT NULL) 
+RETURN VARCHAR IS
+    v_id_edicion CHAR(6);
+    v_count INTEGER;
+BEGIN
+    -- Verificar que la obra existe
+    SELECT COUNT(*) INTO v_count FROM obra WHERE id = p_id_obra;
+    IF v_count = 0 THEN
+        RETURN '0';  -- Error: la obra no existe
+    END IF;
+
+    -- Generar un nuevo ID único para la edición
+    v_id_edicion := dbms_random.string('X', 6);
+
+    -- Insertar la nueva edición
+    INSERT INTO edicion (id, id_obra, isbn, anyo)
+    VALUES (v_id_edicion, p_id_obra, p_isbn, p_anyo);
+
+    RETURN v_id_edicion;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN '-1';  -- En caso de cualquier error
+END alta_edicion;
+/
+
+DECLARE
+    v_id_obra VARCHAR(5) := 'O2KYG';
+    v_isbn VARCHAR(20) := '978-3-16-148410-0';
+    v_anyo INTEGER := 2025; 
+    v_id_edicion VARCHAR(6);
+BEGIN
+    -- Llamar a la función y almacenar el resultado
+    v_id_edicion := alta_edicion(v_id_obra, v_isbn, v_anyo);
+
+    -- Mostrar el resultado
+    DBMS_OUTPUT.PUT_LINE('ID Asignado: ' || v_id_edicion);
+END;
+/
+
+
+-- 9
+CREATE OR REPLACE FUNCTION borrado_edicion (p_id VARCHAR)
+RETURN INTEGER IS 
+    v_count INTEGER;
+BEGIN
+    -- Verificar si la edición existe
+    SELECT COUNT(*) INTO v_count FROM edicion WHERE id = p_id;
+
+    -- Si no existe devolver 0
+    IF v_count = 0 THEN
+        RETURN 0;
+    END IF;
+
+    -- Si existe, eliminar la obra
+    DELETE FROM edicion WHERE id = p_id;
+
+    -- Devolver 1 indicando que la obra fue eliminada correctamente y guardar cambios
+    COMMIT;
+    RETURN 1;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RETURN -1;
+END borrado_edicion;
+/
+
+DECLARE
+    v_result INTEGER;
+BEGIN
+    v_result := borrado_edicion('QX86JR');
+    DBMS_OUTPUT.PUT_LINE('Resultado: ' || v_result);
+END;
+/
+
+
+-- 10
+CREATE OR REPLACE FUNCTION alta_ejemplar(p_id_edicion VARCHAR) 
+RETURN INTEGER IS
+    v_max_numero INTEGER;
+    v_new_numero INTEGER;
+    v_count INTEGER;
+BEGIN
+    -- Comprobar si la edición ya existe
+    SELECT COUNT(*) INTO v_count
+    FROM edicion
+    WHERE id = p_id_edicion;
+
+    IF v_count = 0 THEN
+        RETURN -1;  -- Retorna -1 si la edición no existe
+    END IF;
+
+    -- Encontrar el número más alto de ejemplares para esta edición
+    SELECT COALESCE(MAX(numero), 0) INTO v_max_numero -- Coalesce sustituye NULL por 0
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion;
+
+    -- Asignar el nuevo número
+    v_new_numero := v_max_numero + 1;
+
+    -- Insertar el nuevo ejemplar con la fecha actual
+    INSERT INTO ejemplar (id_edicion, numero, alta)
+    VALUES (p_id_edicion, v_new_numero, SYSDATE);
+
+    -- Devolver el número asignado
+    RETURN v_new_numero;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN -2;  -- Devuelve -2 si ocurre un error inesperado
+END alta_ejemplar;
+/
+
+DECLARE
+    v_id_edicion VARCHAR(10) := 'ZHEKI4';
+    v_resultado INTEGER;
+BEGIN
+    -- Llamar a la función
+    v_resultado := alta_ejemplar(v_id_edicion);
+
+    -- Mostrar el resultado
+    DBMS_OUTPUT.PUT_LINE('Número de ejemplar asignado: ' || v_resultado);
+END;
+/
+
+
+-- 11
+CREATE OR REPLACE FUNCTION borrado_ejemplar (p_id_edicion VARCHAR, p_numero INTEGER)
+RETURN INTEGER IS 
+    v_max_numero INTEGER;
+    v_alta DATE;
+    v_baja DATE;
+    v_count INTEGER;
+BEGIN
+    -- Verificar si el ejemplar existe
+    SELECT COUNT(*), MAX(numero) INTO v_count, v_max_numero
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion;
+
+    -- Si el ejemplar no existe, devolver 0
+    IF v_count = 0 THEN
+        RETURN 0;
+    END IF;
+
+    -- Verificar si el ejemplar es el último de su serie
+    IF p_numero != v_max_numero THEN
+        RETURN -1;
+    END IF;
+
+    -- Obtener datos del ejemplar específico
+    SELECT alta, baja INTO v_alta, v_baja
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    -- Verificar que no tenga fecha de baja y que no hayan pasado más de 30 días
+    IF v_baja IS NOT NULL OR (SYSDATE - v_alta) > 30 THEN
+        RETURN -1;
+    END IF;
+
+    -- Si todas las condiciones se cumplen, eliminar el ejemplar
+    DELETE FROM ejemplar
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    -- Devolver 1 indicando que el ejemplar fue eliminado correctamente y guardar cambios
+    COMMIT;
+    RETURN 1;
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RETURN -2; -- Error inesperado
+END borrado_ejemplar;
+/
+
+DECLARE 
+    v_resultado INTEGER;
+BEGIN
+    v_resultado := borrado_ejemplar('ZHEKI4', 1);
+
+    IF v_resultado = 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Ejemplar borrado exitosamente.');
+    ELSIF v_resultado = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Ejemplar no encontrado.');
+    ELSIF v_resultado = -1 THEN
+        DBMS_OUTPUT.PUT_LINE('No se puede borrar: no cumple condiciones.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Error inesperado.');
+    END IF;
+END;
+/
+
+
+-- 12
+CREATE OR REPLACE FUNCTION baja_ejemplar(p_id_edicion VARCHAR, p_numero INTEGER)
+RETURN INTEGER IS
+    v_baja DATE;
+    v_count INTEGER := 0;
+BEGIN
+    -- Verificar si el ejemplar existe
+    SELECT COUNT(*) INTO v_count
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    -- Si el ejemplar no existe, devolver 0
+    IF v_count = 0 THEN
+        RETURN 0;
+    END IF;
+
+    -- Obtener la fecha de baja
+    SELECT baja INTO v_baja
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    -- Verificar que el ejemplar no tenga fecha de baja
+    IF v_baja IS NOT NULL THEN
+        RETURN -1;
+    END IF;
+
+    -- Actualizar la fecha de baja con la fecha actual del sistema
+    UPDATE ejemplar
+    SET baja = SYSDATE
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    RETURN 1;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 0;
+    WHEN OTHERS THEN
+        RETURN -2; -- Error inesperado
+END baja_ejemplar;
+/
+
+
+DECLARE
+    v_resultado INTEGER;
+BEGIN
+    v_resultado := baja_ejemplar('ZHEKI4', 1);
+
+    IF v_resultado = 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Baja efectuada correctamente.');
+    ELSIF v_resultado = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Ejemplar no encontrado.');
+    ELSIF v_resultado = -1 THEN
+        DBMS_OUTPUT.PUT_LINE('No se puede dar de baja: ya tiene fecha de baja.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Error inesperado.');
+    END IF;
+END;
+/
