@@ -276,12 +276,13 @@ a nuestros procedimientos y/o funciones de los paquetes
 28. El primer fichero se llamará BIBLIOTK_PACKAGE.SQL, con el siguiente contenido:
 CREATE OR REPLACE PACKAGE BiblioTK AS
     ... las funciones tal como deben aparecer en
-CREATE PACKAGE END;
+CREATE PACKAGE END; (AQUI VAN LOS TITULOS DE LAS FUNCIONES)
+FUNCTIO alta_obra(p_titulo VARCHAR, p_anyo INTEGER DEFAULT NULL) RETURN VARCHAR;
 
 29. El segundo fichero se llamará BIBLIOTK_BODY.SQL, con el siguiente contenido.
 CREATE OR REPLACE PACKAGE BODY BiblioTK AS
     ... las funciones tal y como deben aparecer en
-CREATE PACKAGE BODY END;
+CREATE PACKAGE BODY END; (AQUI VAN TODAS LAS FUNCIONES)
 
 30. El tercer fichero se llamará BIBLIOTK_ESQUEMA_PARTE2.SQL y contendrá la definición CREATE TABLE de 
-las tablas "socio" y "préstamo" de la operativa opcional, si la implementa.
+las tablas "socio" y "préstamo" de la operativa opcional, si la implementa. (TODO LO OPCIONAL)
