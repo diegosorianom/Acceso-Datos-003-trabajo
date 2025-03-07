@@ -1,7 +1,7 @@
 CREATE OR REPLACE PACKAGE BiblioTK AS
     FUNCTION alta_obra(p_titulo VARCHAR, p_anyo INTEGER DEFAULT NULL) RETURN VARCHAR;
     FUNCTION borrado_obra(p_id VARCHAR) RETURN INTEGER;
-    FUNCTION alta_autor(p_nombre VARCHAR, p_apellidos VARCHAR, p_nacimiento DATE DEFAULT NULL) RETURN VARCHAR IS;
+    FUNCTION alta_autor(p_nombre VARCHAR, p_apellidos VARCHAR, p_nacimiento DATE DEFAULT NULL) RETURN VARCHAR;
     FUNCTION borrado_autor(p_id VARCHAR) RETURN INTEGER;
     FUNCTION vincular(p_id_autor VARCHAR, p_id_obra VARCHAR) RETURN INTEGER;
     FUNCTION desvincular(p_id_autor VARCHAR, p_id_obra VARCHAR) RETURN INTEGER;
