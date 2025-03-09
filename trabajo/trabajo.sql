@@ -580,3 +580,223 @@ BEGIN
     END IF;
 END;
 /
+
+
+-- Opcionales
+-- 1
+CREATE TABLE socio (
+    id CHAR(5),
+    nombre VARCHAR(30),
+    apellidos VARCHAR(60),
+    fecha_nacimiento DATE,
+    fecha_alta DATE DEFAULT SYSDATE,
+    telefono VARCHAR(15),
+    email VARCHAR(100),
+    CONSTRAINT PK_socio PRIMARY KEY (id),
+    CONSTRAINT NN_nombre_socio CHECK (nombre IS NOT NULL),
+    CONSTRAINT NN_apellidos_socio CHECK (apellidos IS NOT NULL),
+    CONSTRAINT UQ_email_socio UNIQUE (email)
+);
+
+CREATE OR REPLACE FUNCTION alta_socio (
+    p_nombre VARCHAR2,
+    p_apellidos VARCHAR2,  -- Corrección: parámetro renombrado
+    p_fecha_nacimiento DATE DEFAULT NULL,
+    p_telefono VARCHAR2 DEFAULT NULL,
+    p_email VARCHAR2 DEFAULT NULL
+) RETURN VARCHAR2 IS
+    v_id CHAR(5);
+    v_count_email INTEGER;
+BEGIN
+    -- Verificar si el email ya existe en la base de datos
+    IF p_email IS NOT NULL THEN
+        SELECT COUNT(*) INTO v_count_email FROM socio WHERE email = p_email;
+        IF v_count_email > 0 THEN
+            RETURN '-2'; -- Error: Email ya existe
+        END IF;
+    END IF;
+
+    -- Generar un ID aleatorio de 5 caracteres en mayúsculas
+    v_id := dbms_random.string('X', 5);
+
+    -- Insertar el nuevo socio en la base de datos
+    INSERT INTO socio (id, nombre, apellidos, fecha_nacimiento, fecha_alta, telefono, email)
+    VALUES (v_id, p_nombre, p_apellidos, p_fecha_nacimiento, SYSDATE, p_telefono, p_email);
+
+    -- Confirmar la transacción
+    COMMIT;
+
+    -- Devolver el ID generado
+    RETURN v_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RETURN '-1'; -- Error inesperado
+END alta_socio;
+/
+
+DECLARE
+    v_nuevo_socio_id VARCHAR2(5);
+BEGIN
+    v_nuevo_socio_id := alta_socio('Carlos', 'López Fernández', TO_DATE('1985-07-21', 'YYYY-MM-DD'), '699123456', 'carlos@email.com');
+
+    IF v_nuevo_socio_id = '-1' THEN
+        DBMS_OUTPUT.PUT_LINE('Error inesperado al registrar el socio.');
+    ELSIF v_nuevo_socio_id = '-2' THEN
+        DBMS_OUTPUT.PUT_LINE('Error: El email ya está registrado.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Socio registrado exitosamente con ID: ' || v_nuevo_socio_id);
+    END IF;
+END;
+/
+
+
+-- 2
+CREATE TABLE prestamo_bibliotk (
+    id CHAR(6),
+    id_socio CHAR(5),
+    id_edicion CHAR(6),
+    numero INTEGER,
+    fecha_prestamo DATE DEFAULT SYSDATE,
+    fecha_devolucion DATE,
+    CONSTRAINT PK_prestamo_bibliotk PRIMARY KEY (id),
+    CONSTRAINT FK_prestamo_socio FOREIGN KEY (id_socio) REFERENCES socio(id),
+    CONSTRAINT FK_prestamo_ejemplar FOREIGN KEY (id_edicion, numero) REFERENCES ejemplar (id_edicion, numero),
+    CONSTRAINT CK_fecha_devolucion CHECK (fecha_devolucion IS NULL OR fecha_devolucion >= fecha_prestamo)
+);
+
+-- 3
+CREATE OR REPLACE FUNCTION apertura_prestamo (
+    p_id_socio    VARCHAR2,
+    p_id_edicion  VARCHAR2,
+    p_numero      INTEGER
+) RETURN INTEGER IS
+    v_count_socio INTEGER;
+    v_count_ejemplar INTEGER;
+    v_count_prestamo INTEGER;
+    v_id_prestamo VARCHAR2(6);
+BEGIN
+    -- Verificar si el socio existe
+    SELECT COUNT(*) INTO v_count_socio FROM socio WHERE id = p_id_socio;
+    IF v_count_socio = 0 THEN
+        RETURN -1; -- Error: Socio no encontrado
+    END IF;
+
+    -- Verificar si el ejemplar existe
+    SELECT COUNT(*) INTO v_count_ejemplar
+    FROM ejemplar
+    WHERE id_edicion = p_id_edicion AND numero = p_numero;
+
+    IF v_count_ejemplar = 0 THEN
+        RETURN -2; -- Error: Ejemplar no encontrado
+    END IF;
+
+    -- Verificar si el ejemplar ya está prestado
+    SELECT COUNT(*) INTO v_count_prestamo
+    FROM prestamo_bibliotk
+    WHERE id_edicion = p_id_edicion
+    AND numero = p_numero
+    AND fecha_devolucion IS NULL;
+
+    IF v_count_prestamo > 0 THEN
+        RETURN -3; -- Error: Ejemplar ya prestado
+    END IF;
+
+    -- Generar un nuevo ID de préstamo
+    v_id_prestamo := dbms_random.string('X', 6);
+
+    -- Insertar el nuevo préstamo
+    INSERT INTO prestamo_bibliotk (id, id_socio, id_edicion, numero, fecha_prestamo, fecha_devolucion)
+    VALUES (v_id_prestamo, p_id_socio, p_id_edicion, p_numero, SYSDATE, NULL);
+
+    -- Confirmar la transacción
+    COMMIT;
+
+    RETURN 1; -- Éxito
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RETURN -4; -- Error inesperado
+END apertura_prestamo;
+/
+
+DECLARE
+    v_resultado INTEGER;
+BEGIN
+    v_resultado := apertura_prestamo('ABSNL', 'ZHEKI4', 1);
+
+    IF v_resultado = 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Préstamo registrado exitosamente.');
+    ELSIF v_resultado = -1 THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Socio no encontrado.');
+    ELSIF v_resultado = -2 THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Ejemplar no encontrado.');
+    ELSIF v_resultado = -3 THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Ejemplar ya prestado.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Error inesperado.');
+    END IF;
+END;
+/
+
+-- 4
+
+
+-- 5
+CREATE OR REPLACE FUNCTION cierre_prestamo (
+    p_id_prestamo VARCHAR2 --
+) RETURN INTEGER IS
+    v_count INTEGER;
+    v_fecha_devolucion DATE;
+BEGIN   
+    -- Verificar si el prestamo existe
+    SELECT COUNT(*) INTO v_count
+    FROM prestamo_bibliotk
+    WHERE id = p_id_prestamo;
+
+    if v_count = 0 THEN
+        RETURN -1; -- Error: Prestamo no encontrado
+    END IF;
+
+    -- Verificar si el préstamo ya fue devuelto
+    SELECT fecha_devolucion INTO v_fecha_devolucion
+    FROM prestamo_bibliotk
+    WHERE id = p_id_prestamo;
+
+    IF v_fecha_devolucion IS NOT NULL THEN
+        RETURN -2; -- Error: El préstamo ya ha sido devuelto
+    END IF;
+
+    -- Registrar la fecha de devolución como la fecha actual
+    UPDATE prestamo_bibliotk
+    SET fecha_devolucion = SYSDATE
+    WHERE id = p_id_prestamo;
+
+    -- Confirmar la transacción
+    COMMIT;
+    RETURN 1; --Éxito: Prestamo cerrado correctamente
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RETURN -3; -- Error inesperado
+END cierre_prestamo;
+/
+
+DECLARE
+    v_result INTEGER;
+BEGIN
+    v_result := cierre_prestamo('DHT13S'); -- ID de un préstamo válido
+
+    IF v_result = 1 THEN
+        DBMS_OUTPUT.PUT_LINE('Préstamo cerrado exitosamente.');
+    ELSIF v_result = -1 THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Préstamo no encontrado.');
+    ELSIF v_result = -2 THEN
+        DBMS_OUTPUT.PUT_LINE('Error: El préstamo ya fue devuelto.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Error inesperado.');
+    END IF;
+END;
+/
