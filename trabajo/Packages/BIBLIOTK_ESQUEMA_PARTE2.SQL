@@ -58,6 +58,46 @@ CREATE TABLE prestamo_historico (
 -- ESQUEMA PARTE 2 - TRIGGERS PARA AUDITORÍA DE BORRADO
 -- ----------------------------------------------------
 
+-- Trigger para auditar el borrado de autores
+CREATE OR REPLACE TRIGGER auditar_borrado_autor
+BEFORE DELETE ON autor
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_historico (id, nombre, apellidos, nacimiento, fecha_borrado)
+    VALUES (:OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.nacimiento, SYSTIMESTAMP);
+END;
+/
+
+-- Trigger para auditar el borrado de la relacion
+CREATE OR REPLACE TRIGGER auditar_borrado_autor_obra
+BEFORE DELETE ON autor_obra
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_obra_historico (id_autor, id_obra, fecha_borrado)
+    VALUES (:OLD.id_autor, :OLD.id_obra, SYSTIMESTAMP);
+END;
+/
+
+-- Trigger para auditar el borrado de ediciones
+CREATE OR REPLACE TRIGGER auditar_borrado_edicion
+BEFORE DELETE ON edicion
+FOR EACH ROW
+BEGIN
+    INSERT INTO edicion_historico (id, id_obra, isbn, anyo, fecha_borrado)
+    VALUES (:OLD.id, :OLD.id_obra, :OLD.isbn, :OLD.anyo, SYSTIMESTAMP);
+END;
+/
+
+-- Trigger para auditar el borrado de ejemplares
+CREATE OR REPLACE TRIGGER auditar_borrado_ejemplar
+BEFORE DELETE ON ejemplar
+FOR EACH ROW
+BEGIN
+    INSERT INTO ejemplar_historico (id_edicion, numero, alta, baja, fecha_borrado)
+    VALUES (:OLD.id_edicion, :OLD.numero, :OLD.alta, :OLD.baja, SYSTIMESTAMP);
+END;
+/
+
 -- Trigger para auditar el borrado de socios
 CREATE OR REPLACE TRIGGER auditar_borrado_socio
 BEFORE DELETE ON socio
