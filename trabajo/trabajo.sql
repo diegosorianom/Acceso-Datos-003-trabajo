@@ -153,7 +153,7 @@ CREATE TABLE obra_historico (
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
 );
 
-CREATE OR REPLACE TRIGGER auditar_borrado
+CREATE OR REPLACE TRIGGER auditar_borrado_obra
 BEFORE DELETE ON obra
 FOR EACH ROW
 BEGIN
@@ -742,7 +742,110 @@ END;
 /
 
 -- 4
+CREATE TABLE autor_historico (
+    id CHAR(4),
+    nombre VARCHAR(30),
+    apellidos VARCHAR(60),
+    nacimiento DATE,
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
 
+CREATE TABLE autor_obra_historico (
+    id_autor CHAR(4),
+    id_obra CHAR(5),
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
+
+CREATE TABLE edicion_historico (
+    id CHAR(6),
+    id_obra CHAR(5),
+    isbn VARCHAR(20),
+    anyo INTEGER,
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
+
+CREATE TABLE ejemplar_historico (
+    id_edicion CHAR(6),
+    numero INTEGER,
+    alta DATE,
+    baja DATE,
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
+
+CREATE TABLE socio_historico (
+    id CHAR(5),
+    nombre VARCHAR(30),
+    apellidos VARCHAR(60),
+    fecha_nacimiento DATE,
+    fecha_alta DATE,
+    telefono VARCHAR(15),
+    email VARCHAR(100),
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
+
+CREATE TABLE prestamo_historico (
+    id CHAR(6),
+    id_socio CHAR(5),
+    id_edicion CHAR(6),
+    numero INTEGER,
+    fecha_prestamo DATE,
+    fecha_devolucion DATE, 
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
+
+CREATE OR REPLACE TRIGGER auditar_borrado_autor
+BEFORE DELETE ON autor
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_historico (id, nombre, apellidos, nacimiento, fecha_borrado)
+    VALUES (:OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.nacimiento, SYSTIMESTAMP);
+END;
+/
+
+CREATE OR REPLACE TRIGGER auditar_borrado_autor_obra
+BEFORE DELETE ON autor_obra
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_obra_historico (id_autor, id_obra, fecha_borrado)
+    VALUES (:OLD.id_autor, :OLD.id_obra, SYSTIMESTAMP);
+END;
+/
+
+CREATE OR REPLACE TRIGGER auditar_borrado_edicion
+BEFORE DELETE ON edicion_historico
+FOR EACH ROW
+BEGIN
+    INSERT INTO edicion_historico (id, id_obra, isbn, anyo, fecha_borrado)
+    VALUES (:OLD.id, :OLD.id_obra, :OLD.isbn, :OLD.anyo, SYSTIMESTAMP);
+END;
+/
+
+CREATE OR REPLACE TRIGGER auditar_borrado_ejemplar
+BEFORE DELETE ON ejemplar
+FOR EACH ROW
+BEGIN
+    INSERT INTO ejemplar_historico (id_edicion, numero, alta, baja, fecha_borrado)
+    VALUES (:OLD.id_edicion, :OLD.numero, :OLD.alta, :OLD.baja, SYSTIMESTAMP);
+END;
+/
+
+CREATE OR REPLACE TRIGGER auditar_borrado_socio
+BEFORE DELETE ON socio
+FOR EACH ROW
+BEGIN 
+    INSERT INTO socio_historico (id, nombre, apellidos, fecha_nacimiento, fecha_alta, telefono, email, fecha_borrado)
+    VALUES (:OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.fecha_nacimiento, :OLD.fecha_alta, :OLD.telefono, :OLD.email, SYSTIMESTAMP);
+END;
+/
+
+CREATE OR REPLACE TRIGGER auditar_borrado_prestamo
+BEFORE DELETE ON prestamo_bibliotk
+FOR EACH ROW
+BEGIN
+    INSERT INTO prestamo_historico (id, id_socio, id_edicion, numero, fecha_prestamo, fecha_devolucion, fecha_borrado)
+    VALUES (:OLD.id, :OLD.id_socio, :OLD.id_edicion, :OLD.numero, :OLD.fecha_prestamo, :OLD.fecha_devolucion, SYSTIMESTAMP);
+END;
+/
 
 -- 5
 CREATE OR REPLACE FUNCTION cierre_prestamo (
