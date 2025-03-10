@@ -146,20 +146,24 @@ END;
 
 
 -- 3
+CREATE SEQUENCE obra_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
+-- Crear tabla historico obra
 CREATE TABLE obra_historico (
+    id_historico NUMBER,
     id CHAR(5),
     titulo VARCHAR(100),
     anyo INTEGER,
-    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP,
+    CONSTRAINT PK_id_historico PRIMARY KEY (id_historico),
 );
 
 CREATE OR REPLACE TRIGGER auditar_borrado_obra
 BEFORE DELETE ON obra
 FOR EACH ROW
 BEGIN
-    -- Guardar la obra eliminada en obra_historico antes de borrarla
-    INSERT INTO obra_historico(id, titulo, anyo, fecha_borrado)
-    VALUES (:OLD.id, :OLD.titulo, NULL, SYSTIMESTAMP);
+    INSERT INTO obra_historico (id_historico, id, titulo, anyo, fecha_borrado)
+    VALUES (obra_historico_seq.NEXTVAL, :OLD.id, :OLD.titulo, :OLD.anyo, SYSTIMESTAMP);
 END;
 /
 
@@ -742,7 +746,10 @@ END;
 /
 
 -- 4
+CREATE SEQUENCE autor_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
 CREATE TABLE autor_historico (
+    id_historico NUMBER PRIMARY KEY,
     id CHAR(4),
     nombre VARCHAR(30),
     apellidos VARCHAR(60),
@@ -750,13 +757,37 @@ CREATE TABLE autor_historico (
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
 );
 
+CREATE OR REPLACE TRIGGER auditar_borrado_autor
+BEFORE DELETE ON autor
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_historico (id_historico, id, nombre, apellidos, nacimiento, fecha_borrado)
+    VALUES (autor_historico_seq.NEXTVAL, :OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.nacimiento, SYSTIMESTAMP);
+END;
+/
+
+CREATE SEQUENCE autor_obra_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
 CREATE TABLE autor_obra_historico (
+    id_historico NUMBER PRIMARY KEY,
     id_autor CHAR(4),
     id_obra CHAR(5),
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
 );
 
+CREATE OR REPLACE TRIGGER auditar_borrado_autor_obra
+BEFORE DELETE ON autor_obra
+FOR EACH ROW
+BEGIN
+    INSERT INTO autor_obra_historico (id_historico, id_autor, id_obra, fecha_borrado)
+    VALUES (autor_obra_historico_seq.NEXTVAL, :OLD.id_autor, :OLD.id_obra, SYSTIMESTAMP);
+END;
+/
+
+CREATE SEQUENCE edicion_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
 CREATE TABLE edicion_historico (
+    id_historico NUMBER PRIMARY KEY,
     id CHAR(6),
     id_obra CHAR(5),
     isbn VARCHAR(20),
@@ -764,86 +795,77 @@ CREATE TABLE edicion_historico (
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
 );
 
+CREATE OR REPLACE TRIGGER auditar_borrado_edicion
+BEFORE DELETE ON edicion
+FOR EACH ROW
+BEGIN
+    INSERT INTO edicion_historico (id_historico, id, id_obra, isbn, anyo, fecha_borrado)
+    VALUES (edicion_historico_seq.NEXTVAL, :OLD.id, :OLD.id_obra, :OLD.isbn, :OLD.anyo, SYSTIMESTAMP);
+END;
+/
+
+CREATE SEQUENCE ejemplar_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
 CREATE TABLE ejemplar_historico (
+    id_historico NUMBER PRIMARY KEY,
     id_edicion CHAR(6),
     numero INTEGER,
-    alta DATE,
+    alta DATE NOT NULL,
     baja DATE,
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
 );
-
-CREATE TABLE socio_historico (
-    id CHAR(5),
-    nombre VARCHAR(30),
-    apellidos VARCHAR(60),
-    fecha_nacimiento DATE,
-    fecha_alta DATE,
-    telefono VARCHAR(15),
-    email VARCHAR(100),
-    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
-);
-
-CREATE TABLE prestamo_historico (
-    id CHAR(6),
-    id_socio CHAR(5),
-    id_edicion CHAR(6),
-    numero INTEGER,
-    fecha_prestamo DATE,
-    fecha_devolucion DATE, 
-    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
-);
-
-CREATE OR REPLACE TRIGGER auditar_borrado_autor
-BEFORE DELETE ON autor
-FOR EACH ROW
-BEGIN
-    INSERT INTO autor_historico (id, nombre, apellidos, nacimiento, fecha_borrado)
-    VALUES (:OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.nacimiento, SYSTIMESTAMP);
-END;
-/
-
-CREATE OR REPLACE TRIGGER auditar_borrado_autor_obra
-BEFORE DELETE ON autor_obra
-FOR EACH ROW
-BEGIN
-    INSERT INTO autor_obra_historico (id_autor, id_obra, fecha_borrado)
-    VALUES (:OLD.id_autor, :OLD.id_obra, SYSTIMESTAMP);
-END;
-/
-
-CREATE OR REPLACE TRIGGER auditar_borrado_edicion
-BEFORE DELETE ON edicion_historico
-FOR EACH ROW
-BEGIN
-    INSERT INTO edicion_historico (id, id_obra, isbn, anyo, fecha_borrado)
-    VALUES (:OLD.id, :OLD.id_obra, :OLD.isbn, :OLD.anyo, SYSTIMESTAMP);
-END;
-/
 
 CREATE OR REPLACE TRIGGER auditar_borrado_ejemplar
 BEFORE DELETE ON ejemplar
 FOR EACH ROW
 BEGIN
-    INSERT INTO ejemplar_historico (id_edicion, numero, alta, baja, fecha_borrado)
-    VALUES (:OLD.id_edicion, :OLD.numero, :OLD.alta, :OLD.baja, SYSTIMESTAMP);
+    INSERT INTO ejemplar_historico (id_historico, id_edicion, numero, alta, baja, fecha_borrado)
+    VALUES (ejemplar_historico_seq.NEXTVAL, :OLD.id_edicion, :OLD.numero, :OLD.alta, :OLD.baja, SYSTIMESTAMP);
 END;
 /
+
+CREATE SEQUENCE socio_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
+CREATE TABLE socio_historico (
+    id_historico NUMBER PRIMARY KEY,
+    id CHAR(5),
+    nombre VARCHAR(30) NOT NULL,
+    apellidos VARCHAR(60) NOT NULL,
+    fecha_nacimiento DATE,
+    fecha_alta DATE DEFAULT SYSDATE,
+    telefono VARCHAR(15),
+    email VARCHAR(100),
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
 
 CREATE OR REPLACE TRIGGER auditar_borrado_socio
 BEFORE DELETE ON socio
 FOR EACH ROW
 BEGIN 
-    INSERT INTO socio_historico (id, nombre, apellidos, fecha_nacimiento, fecha_alta, telefono, email, fecha_borrado)
-    VALUES (:OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.fecha_nacimiento, :OLD.fecha_alta, :OLD.telefono, :OLD.email, SYSTIMESTAMP);
+    INSERT INTO socio_historico (id_historico, id, nombre, apellidos, fecha_nacimiento, fecha_alta, telefono, email, fecha_borrado)
+    VALUES (socio_historico_seq.NEXTVAL, :OLD.id, :OLD.nombre, :OLD.apellidos, :OLD.fecha_nacimiento, :OLD.fecha_alta, :OLD.telefono, :OLD.email, SYSTIMESTAMP);
 END;
 /
+
+CREATE SEQUENCE prestamo_historico_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
+CREATE TABLE prestamo_historico (
+    id_historico NUMBER PRIMARY KEY,
+    id CHAR(6),
+    id_socio CHAR(5),
+    id_edicion CHAR(6),
+    numero INTEGER,
+    fecha_prestamo DATE DEFAULT SYSDATE,
+    fecha_devolucion DATE,
+    fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP
+);
 
 CREATE OR REPLACE TRIGGER auditar_borrado_prestamo
 BEFORE DELETE ON prestamo_bibliotk
 FOR EACH ROW
 BEGIN
-    INSERT INTO prestamo_historico (id, id_socio, id_edicion, numero, fecha_prestamo, fecha_devolucion, fecha_borrado)
-    VALUES (:OLD.id, :OLD.id_socio, :OLD.id_edicion, :OLD.numero, :OLD.fecha_prestamo, :OLD.fecha_devolucion, SYSTIMESTAMP);
+    INSERT INTO prestamo_historico (id_historico, id, id_socio, id_edicion, numero, fecha_prestamo, fecha_devolucion, fecha_borrado)
+    VALUES (prestamo_historico_seq.NEXTVAL, :OLD.id, :OLD.id_socio, :OLD.id_edicion, :OLD.numero, :OLD.fecha_prestamo, :OLD.fecha_devolucion, SYSTIMESTAMP);
 END;
 /
 
