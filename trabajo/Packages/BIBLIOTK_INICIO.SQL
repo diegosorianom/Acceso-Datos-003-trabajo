@@ -71,5 +71,5 @@ CREATE TABLE obra_historico (
     titulo VARCHAR(100),
     anyo INTEGER,
     fecha_borrado TIMESTAMP DEFAULT SYSTIMESTAMP,
-    CONSTRAINT PK_id_historico PRIMARY KEY (id_historico),
+    CONSTRAINT PK_id_historico PRIMARY KEY (id_historico)
 );
